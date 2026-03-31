@@ -1,0 +1,50 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  email              String         @unique
+  createdAt          DateTime       @default(now())
+  stripeCustomerId   String?        @unique
+  subscriptions      Subscription[]
+  invoices           Invoice[]
+}
+
+model Subscription {
+  id                 String   @id // Stripe subscription id
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  status             String   // active, canceled, past_due
+  priceId            String
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Invoice {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  invoiceNumber      String   @unique
+  recipientName      String
+  recipientAddress   String
+  recipientZipCity   String   // e.g. "8001 Zürich"
+  amount             Float
+  vatRate            Float    @default(0)
+  description        String
+  issuedAt           DateTime @default(now())
+  dueAt              DateTime
+  pdfUrl             String?
+  status             String   @default("draft") // draft, sent, paid, overdue
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
